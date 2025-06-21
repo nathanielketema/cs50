@@ -1,6 +1,7 @@
 const std = @import("std");
 const stdin = std.io.getStdIn().reader();
 const print = std.debug.print;
+const testing = std.testing;
 
 const InputKeyError = error{
     MissingArgument,
@@ -27,7 +28,7 @@ pub fn main() !void {
         }
     }
     for (temp, 0..) |c, i| {
-        for (temp[i+1..]) |cj| {
+        for (temp[i + 1 ..]) |cj| {
             if (c == cj) {
                 printErrorMessage(InputKeyError.NotUnique);
                 return;
@@ -37,13 +38,23 @@ pub fn main() !void {
     const key = temp;
     var buffer: [10]u8 = undefined;
     print("plaintext: ", .{});
-    const plaintext = try stdin.readUntilDelimiterOrEof(&buffer, '\n');
-    const cipher: []u8 = encipher(plaintext.?, key);
+    const plaintext = stdin.readUntilDelimiterOrEof(&buffer, '\n') catch unreachable;
+    const cipher: []const u8 = encipher(plaintext.?, key);
     print("ciphertext: {s}\n", .{cipher});
 }
 
-fn encipher(text: []u8, key: [*:0]u8) []u8 {
-    _ = key;
+fn encipher(text: []u8, key: []u8) []u8 {
+    var index: u8 = undefined;
+    for (text) |*c| {
+        if (!std.ascii.isAlphabetic(c.*)) continue;
+        if (std.ascii.isLower(c.*)) {
+            index = c.* - 97;
+            c.* = std.ascii.toLower(key[index]);
+        } else {
+            index = c.* - 65;
+            c.* = std.ascii.toUpper(key[index]);
+        }
+    }
     return text;
 }
 
@@ -53,6 +64,6 @@ fn printErrorMessage(err: InputKeyError) void {
         InputKeyError.LengthNot26 => print("Key must contain 26 characters.\n", .{}),
         InputKeyError.NotAlphabetic => print("Key must only contain alphabetic characters.\n", .{}),
         InputKeyError.NotUnique => print("Key must not contain repeated characters.\n", .{}),
-        else => unreachable
+        else => unreachable,
     }
 }
