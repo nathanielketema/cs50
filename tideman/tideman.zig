@@ -10,9 +10,7 @@ const pair = struct {
     loser: []const u8 = undefined,
 };
 
-const MyErrors = error{ ArgumentNotSatisfied, CandidateNotAlphabetic };
-
-int x = 5;
+pub const MyErrors = error{ ArgumentNotSatisfied, CandidateNotAlphabetic };
 
 pub fn main() !void {
     const args: [][*:0]u8 = std.os.argv;
@@ -28,7 +26,7 @@ pub fn main() !void {
     }
 }
 
-fn validateCandidates(args: [][*:0]u8) MyErrors!void {
+pub fn validateCandidates(args: [][*:0]u8) MyErrors!void {
     if (args.len < 3 or args.len > 10) {
         return MyErrors.ArgumentNotSatisfied;
     }
@@ -52,8 +50,4 @@ fn printErrorMessage(err: MyErrors) void {
         MyErrors.CandidateNotAlphabetic => print("Candidate must be alphabetic!\n", .{}),
         else => unreachable,
     }
-}
-
-test "validate command line argument" {
-    try testing.expectError(MyErrors.ArgumentNotSatisfied, validateCandidates(&.{}));
 }
