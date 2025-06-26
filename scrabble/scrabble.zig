@@ -5,23 +5,23 @@ const print = std.debug.print;
 
 const Score = struct {
     letter: u8 = undefined,
-    value: u8 = undefined
+    value: u8 = undefined,
 };
 
-const scoring = [_]Score { 
-    .{ .letter = 'A', .value = 1 }, .{ .letter = 'B', .value = 3 }, 
-    .{ .letter = 'C', .value = 3 }, .{ .letter = 'D', .value = 2 }, 
-    .{ .letter = 'E', .value = 1 }, .{ .letter = 'F', .value = 4 }, 
-    .{ .letter = 'G', .value = 2 }, .{ .letter = 'H', .value = 4 }, 
-    .{ .letter = 'I', .value = 1 }, .{ .letter = 'J', .value = 8 }, 
-    .{ .letter = 'K', .value = 5 }, .{ .letter = 'L', .value = 1 }, 
-    .{ .letter = 'M', .value = 3 }, .{ .letter = 'N', .value = 1 }, 
-    .{ .letter = 'O', .value = 1 }, .{ .letter = 'P', .value = 3 }, 
-    .{ .letter = 'Q', .value = 10 }, .{ .letter = 'R', .value = 1 }, 
-    .{ .letter = 'S', .value = 1 }, .{ .letter = 'T', .value = 1 }, 
-    .{ .letter = 'U', .value = 1 }, .{ .letter = 'V', .value = 4 }, 
-    .{ .letter = 'W', .value = 4 }, .{ .letter = 'X', .value = 8 }, 
-    .{ .letter = 'Y', .value = 4 }, .{ .letter = 'Z', .value = 10 } 
+const scoring = [_]Score{
+    .{ .letter = 'A', .value = 1 },  .{ .letter = 'B', .value = 3 },
+    .{ .letter = 'C', .value = 3 },  .{ .letter = 'D', .value = 2 },
+    .{ .letter = 'E', .value = 1 },  .{ .letter = 'F', .value = 4 },
+    .{ .letter = 'G', .value = 2 },  .{ .letter = 'H', .value = 4 },
+    .{ .letter = 'I', .value = 1 },  .{ .letter = 'J', .value = 8 },
+    .{ .letter = 'K', .value = 5 },  .{ .letter = 'L', .value = 1 },
+    .{ .letter = 'M', .value = 3 },  .{ .letter = 'N', .value = 1 },
+    .{ .letter = 'O', .value = 1 },  .{ .letter = 'P', .value = 3 },
+    .{ .letter = 'Q', .value = 10 }, .{ .letter = 'R', .value = 1 },
+    .{ .letter = 'S', .value = 1 },  .{ .letter = 'T', .value = 1 },
+    .{ .letter = 'U', .value = 1 },  .{ .letter = 'V', .value = 4 },
+    .{ .letter = 'W', .value = 4 },  .{ .letter = 'X', .value = 8 },
+    .{ .letter = 'Y', .value = 4 },  .{ .letter = 'Z', .value = 10 },
 };
 
 pub fn main() !void {
@@ -62,7 +62,7 @@ fn getScore(word: []const u8) u8 {
 test "first test" {
     const a = getScore("Nathaniel");
     const b = getScore("Ketema");
-    try testing.expect((a==b));
+    try testing.expect((a == b));
 }
 
 test "getScore returns correct values for single letters" {
@@ -70,7 +70,7 @@ test "getScore returns correct values for single letters" {
     for (scoring) |s| {
         const letter = [_]u8{s.letter};
         try testing.expectEqual(s.value, getScore(&letter));
-        
+
         // Also test lowercase version
         const lower_letter = [_]u8{std.ascii.toLower(s.letter)};
         try testing.expectEqual(s.value, getScore(&lower_letter));
@@ -88,7 +88,7 @@ test "getScore calculates correct sums for words" {
     try testing.expectEqual(@as(u8, 22), getScore("quiz")); // Q(10) + U(1) + I(1) + Z(10) = 22
     try testing.expectEqual(@as(u8, 29), getScore("jazz")); // J(8) + A(1) + Z(10) + Z(10) = 29
     try testing.expectEqual(@as(u8, 12), getScore("program")); // P(3) + R(1) + O(1) + G(2) + R(1) + A(1) + M(3) = 12
-    
+
     // Test with mixed case
     try testing.expectEqual(@as(u8, 13), getScore("Zig"));
     try testing.expectEqual(@as(u8, 13), getScore("zIg"));
@@ -109,7 +109,7 @@ test "getScore handles unknown letters" {
 test "getScore handles long words" {
     const long_word = "supercalifragilisticexpialidocious";
     // Calculate expected score manually
-    const expected_score: u8 = 
+    const expected_score: u8 =
         1 + // S
         1 + // U
         3 + // P
@@ -143,7 +143,7 @@ test "getScore handles long words" {
         1 + // I
         1 + // O
         1 + // U
-        1;  // S
-    
+        1; // S
+
     try testing.expectEqual(expected_score, getScore(long_word));
 }

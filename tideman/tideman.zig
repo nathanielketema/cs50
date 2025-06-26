@@ -1,6 +1,7 @@
 const std = @import("std");
 const print = std.debug.print;
 const testing = std.testing;
+const stdin = std.io.getStdIn().reader();
 
 var pair_count: usize = 0;
 var candidate_count: usize = 0;
@@ -10,7 +11,10 @@ const pair = struct {
     loser: []const u8 = undefined,
 };
 
-pub const MyErrors = error{ ArgumentNotSatisfied, CandidateNotAlphabetic };
+pub const MyErrors = error{
+    ArgumentNotSatisfied,
+    CandidateNotAlphabetic,
+};
 
 pub fn main() !void {
     const args: [][*:0]u8 = std.os.argv;
@@ -18,12 +22,24 @@ pub fn main() !void {
         printErrorMessage(err);
         return;
     };
-
     candidate_count = args.len - 1;
     var candidates: [9][]u8 = undefined;
     for (args[1..], 0..) |candidate, i| {
         candidates[i] = std.mem.span(candidate);
     }
+
+    print("Number of voters: ", .{});
+
+    var gpa = std.heap.DebugAllocator(.{}){};
+    defer _ = gpa.deinit();
+
+    const allocator = gpa.allocator();
+    const buffer: []u8 = try allocator.alloc(u8, 5);
+    defer allocator.free(buffer);
+
+    const user_input: ?[]const u8 = stdin.readUntilDelimiterOrEof(buffer, '\n') catch unreachable;
+    const number_of_voters: u8 = try std.fmt.parseInt(u8, user_input.?, 0);
+    _ = number_of_voters;
 }
 
 pub fn validateCandidates(args: [][*:0]u8) MyErrors!void {
