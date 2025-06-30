@@ -3,10 +3,13 @@ const print = std.debug.print;
 const testing = std.testing;
 const stdin = std.io.getStdIn().reader();
 
+const MAX_CANDIDATES = 9;
 var pair_count: usize = 0;
 var candidate_count: usize = 0;
+var candidates: [MAX_CANDIDATES][]u8 = undefined;
+var preference: [MAX_CANDIDATES][MAX_CANDIDATES]u8 = undefined;
 
-const pair = struct {
+const Pair = struct {
     winner: []const u8 = undefined,
     loser: []const u8 = undefined,
 };
@@ -23,7 +26,6 @@ pub fn main() !void {
         return;
     };
     candidate_count = args.len - 1;
-    var candidates: [9][]u8 = undefined;
     for (args[1..], 0..) |candidate, i| {
         candidates[i] = std.mem.span(candidate);
     }
@@ -37,12 +39,44 @@ pub fn main() !void {
     const buffer: []u8 = try allocator.alloc(u8, 5);
     defer allocator.free(buffer);
 
-    const user_input: ?[]const u8 = stdin.readUntilDelimiterOrEof(buffer, '\n') catch unreachable;
-    const number_of_voters: u8 = try std.fmt.parseInt(u8, user_input.?, 0);
-    _ = number_of_voters;
+    const user_input: ?[]const u8 = stdin.readUntilDelimiterOrEof(buffer, '\n') catch |err| {
+        printErrorMessage(err);
+        return;
+    };
+    const voter_count: u8 = std.fmt.parseInt(u8, user_input orelse return, 0) catch |err| {
+        printErrorMessage(err);
+        return;
+    };
+
+    var i: usize = 1;
+    while (i <= voter_count) : (i += 1) {
+        var ranks: [MAX_CANDIDATES]usize = undefined;
+        for (1..(candidate_count + 1)) |rank| {
+            while (true) {
+                print("Rank {}: ", .{rank});
+                var buf: [100]u8 = undefined;
+                const input = try stdin.readUntilDelimiterOrEof(&buf, '\n');
+                if (vote(rank, input.?, ranks[0..])) break;
+                if (vote(rank, input.?, ranks[0..candidate_count])) break;
+                if (vote(rank, input.?, ranks[0..])) break;
+                print("Candidate does not exixt!\nTry again\n\n", .{});
+            }
+        }
+        print("\n", .{});
+    }
 }
 
-pub fn validateCandidates(args: [][*:0]u8) MyErrors!void {
+fn vote(rank: usize, name: []u8, ranks: *[MAX_CANDIDATES]usize) bool {
+    for (candidates[0..candidate_count], 0..) |candidate, i| {
+        if (std.mem.eql(u8, name, candidate)) {
+            ranks.*[rank - 1] = i;
+            return true;
+        }
+    }
+    return false;
+}
+
+pub fn validateCandidates(args: [][*:0]u8) !void {
     if (args.len < 3 or args.len > 10) {
         return MyErrors.ArgumentNotSatisfied;
     }
@@ -56,15 +90,19 @@ pub fn validateCandidates(args: [][*:0]u8) MyErrors!void {
     }
 }
 
-fn printErrorMessage(err: MyErrors) void {
+//pub fn validatePreference() !void {}
+
+fn printErrorMessage(err: anyerror) void {
     switch (err) {
         MyErrors.ArgumentNotSatisfied => {
-            print("A minimum of 2 and a maximum of 9 candidates allowed\n", .{});
+            print("A minimum of 2 and a maximum of {} candidates allowed\n", .{MAX_CANDIDATES});
             print("\n", .{});
             print("Usage: zig run tideman.zig -- Candidate1 Candidate2 [Candidate3]..[Candidate9]\n", .{});
         },
         MyErrors.CandidateNotAlphabetic => print("Candidate must be alphabetic!\n", .{}),
-        else => unreachable,
+        anyerror.InvalidCharacter => print("Input must be an integer!\n", .{}),
+        anyerror.StreamTooLong, anyerror.Overflow => print("A maximum of 255 voters allowed\n", .{}),
+        else => print("Found error! Aborting...\n", .{}),
     }
 }
 
