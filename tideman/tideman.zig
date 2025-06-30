@@ -3,16 +3,20 @@ const print = std.debug.print;
 const testing = std.testing;
 const stdin = std.io.getStdIn().reader();
 
-const MAX_CANDIDATES = 9;
+const MAX_CANDIDATES: comptime_int = 9;
 var pair_count: usize = 0;
 var candidate_count: usize = 0;
 var candidates: [MAX_CANDIDATES][]u8 = undefined;
 var preference: [MAX_CANDIDATES][MAX_CANDIDATES]u8 = undefined;
 
 const Pair = struct {
-    winner: []const u8 = undefined,
-    loser: []const u8 = undefined,
+    winner: usize = undefined,
+    loser: usize = undefined,
 };
+
+var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+const allocator = gpa.allocator();
+var pairs = std.ArrayList(Pair).init(allocator);
 
 pub const MyErrors = error{
     ArgumentNotSatisfied,
@@ -32,13 +36,7 @@ pub fn main() !void {
 
     print("Number of voters: ", .{});
 
-    var gpa = std.heap.DebugAllocator(.{}){};
-    defer _ = gpa.deinit();
-
-    const allocator = gpa.allocator();
     const buffer: []u8 = try allocator.alloc(u8, 5);
-    defer allocator.free(buffer);
-
     const user_input: ?[]const u8 = stdin.readUntilDelimiterOrEof(buffer, '\n') catch |err| {
         printErrorMessage(err);
         return;
@@ -70,6 +68,31 @@ pub fn main() !void {
         print("\n", .{});
 
         recoredPreference(ranks[0..]);
+    }
+
+    addPairs() catch |err| {
+        printErrorMessage(err);
+        return;
+    };
+}
+
+fn addPairs() !void {
+    for (0..candidate_count) |r| {
+        for ((r + 1)..candidate_count) |c| {
+            if (preference[r][c] > preference[c][r]) {
+                try pairs.append(Pair{
+                    .winner = r,
+                    .loser = c,
+                });
+                pair_count += 1;
+            } else if (preference[r][c] < preference[c][r]) {
+                try pairs.append(Pair{
+                    .winner = c,
+                    .loser = r,
+                });
+                pair_count += 1;
+            }
+        }
     }
 }
 
