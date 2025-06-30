@@ -48,6 +48,12 @@ pub fn main() !void {
         return;
     };
 
+    for (0..candidate_count) |p| {
+        for (0..candidate_count) |q| {
+            preference[p][q] = 0;
+        }
+    }
+
     var i: usize = 1;
     while (i <= voter_count) : (i += 1) {
         var ranks: [MAX_CANDIDATES]usize = undefined;
@@ -57,12 +63,23 @@ pub fn main() !void {
                 var buf: [100]u8 = undefined;
                 const input = try stdin.readUntilDelimiterOrEof(&buf, '\n');
                 if (vote(rank, input.?, ranks[0..])) break;
-                if (vote(rank, input.?, ranks[0..candidate_count])) break;
                 if (vote(rank, input.?, ranks[0..])) break;
                 print("Candidate does not exixt!\nTry again\n\n", .{});
             }
         }
         print("\n", .{});
+
+        recoredPreference(ranks[0..]);
+    }
+}
+
+fn recoredPreference(ranks: *[MAX_CANDIDATES]usize) void {
+    for (0..candidate_count) |r| {
+        for ((r + 1)..candidate_count) |c| {
+            if (ranks[r] != ranks[c]) {
+                preference[ranks[r]][ranks[c]] += 1;
+            }
+        }
     }
 }
 
