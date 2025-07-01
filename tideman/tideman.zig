@@ -74,6 +74,22 @@ pub fn main() !void {
         printErrorMessage(err);
         return;
     };
+
+    sortPairs();
+}
+
+fn sortPairs() void {
+    var swapped: bool = undefined;
+    for (0..(pair_count - 1)) |i| {
+        swapped = false;
+        for (0..(pair_count - i - 1)) |j| {
+            if (preference[pairs.items[j].winner][pairs.items[j].loser] < preference[pairs.items[j + 1].winner][pairs.items[j + 1].loser]) {
+                std.mem.swap(Pair, &pairs.items[j], &pairs.items[j]);
+                swapped = true;
+            }
+        }
+        if (swapped == false) break;
+    }
 }
 
 fn addPairs() !void {
