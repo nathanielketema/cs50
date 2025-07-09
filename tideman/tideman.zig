@@ -1,110 +1,160 @@
 const std = @import("std");
+const assert = std.debug.assert;
 const print = std.debug.print;
 const testing = std.testing;
+
 const stdin = std.io.getStdIn().reader();
 
-const MAX_CANDIDATES: comptime_int = 9;
+const max_candidates = 9;
+const min_candidates = 2;
+const max_voter_count = 20;
+const min_voter_count = 1;
+const max_input_buffer_size = 100;
+
 var pair_count: usize = 0;
 var candidate_count: usize = 0;
-var candidates: [MAX_CANDIDATES][]u8 = undefined;
-var preference: [MAX_CANDIDATES][MAX_CANDIDATES]u8 = undefined;
+var candidates: [max_candidates][]u8 = undefined;
+var preference_matrix: [max_candidates][max_candidates]u8 = undefined;
+var locked_matrix: [max_candidates][max_candidates]bool = undefined;
 
 const Pair = struct {
-    winner: usize = undefined,
-    loser: usize = undefined,
+    winner_index: usize,
+    loser_index: usize,
 };
 
-var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+var gpa = std.heap.GeneralPurposeAllocator(.{
+    .enable_memory_limit = true,
+}){};
 const allocator = gpa.allocator();
 var pairs = std.ArrayList(Pair).init(allocator);
 
-pub const MyErrors = error{
-    ArgumentNotSatisfied,
-    CandidateNotAlphabetic,
+pub const TidemanError = error{
+    InvalidCandidateCount,
+    NonAlphabeticCandidate,
+    InvalidVoterCount,
+    InputCannotBeNull,
 };
 
 pub fn main() !void {
     const args: [][*:0]u8 = std.os.argv;
-    validateCandidates(args) catch |err| {
+    validateCommandLineArg(args) catch |err| {
         printErrorMessage(err);
         return;
     };
+
     candidate_count = args.len - 1;
-    for (args[1..], 0..) |candidate, i| {
-        candidates[i] = std.mem.span(candidate);
+    assert(candidate_count >= min_candidates);
+    assert(candidate_count <= max_candidates);
+    for (args[1..], 0..) |arg, i| {
+        candidates[i] = std.mem.span(arg);
     }
 
-    print("Number of voters: ", .{});
+    print("Number of voters (max {}): ", .{max_voter_count});
+    var input_buffer: [max_input_buffer_size]u8 = undefined;
+    const user_input = stdin.readUntilDelimiterOrEof(
+        &input_buffer,
+        '\n',
+    ) catch |err| {
+        printErrorMessage(err);
+        return;
+    } orelse {
+        printErrorMessage(TidemanError.InputCannotBeNull);
+        return;
+    };
+    const voter_count = std.fmt.parseInt(
+        u8,
+        user_input,
+        0,
+    ) catch |err| {
+        printErrorMessage(err);
+        return;
+    };
 
-    const buffer: []u8 = try allocator.alloc(u8, 5);
-    const user_input: ?[]const u8 = stdin.readUntilDelimiterOrEof(buffer, '\n') catch |err| {
-        printErrorMessage(err);
+    if ((voter_count < min_voter_count) or (voter_count > max_voter_count)) {
+        printErrorMessage(TidemanError.InvalidVoterCount);
         return;
-    };
-    const voter_count: u8 = std.fmt.parseInt(u8, user_input orelse return, 0) catch |err| {
-        printErrorMessage(err);
-        return;
-    };
+    }
+    assert(voter_count >= min_voter_count);
+    assert(voter_count <= max_voter_count);
 
     for (0..candidate_count) |p| {
         for (0..candidate_count) |q| {
-            preference[p][q] = 0;
+            preference_matrix[p][q] = 0;
         }
     }
 
+    // Collecting votes
     var i: usize = 1;
     while (i <= voter_count) : (i += 1) {
-        var ranks: [MAX_CANDIDATES]usize = undefined;
+        var ranks: [max_candidates]usize = undefined;
         for (1..(candidate_count + 1)) |rank| {
             while (true) {
                 print("Rank {}: ", .{rank});
-                var buf: [100]u8 = undefined;
-                const input = try stdin.readUntilDelimiterOrEof(&buf, '\n');
-                if (vote(rank, input.?, ranks[0..])) break;
-                if (vote(rank, input.?, ranks[0..])) break;
-                print("Candidate does not exixt!\nTry again\n\n", .{});
+                var input_buffer_2: [max_input_buffer_size]u8 = undefined;
+                const user_input_2 = try stdin.readUntilDelimiterOrEof(
+                    &input_buffer_2,
+                    '\n',
+                ) orelse {
+                    printErrorMessage(TidemanError.InputCannotBeNull);
+                    return;
+                };
+                validateVoterCandidate(user_input_2) catch |err| {
+                    printErrorMessage(err);
+                    return;
+                };
+                if (vote(rank, user_input_2, &ranks)) break;
+                print("Candidate does not exixt! Try again.\n", .{});
             }
         }
+        recoredPreference(&ranks);
         print("\n", .{});
-
-        recoredPreference(ranks[0..]);
     }
 
     addPairs() catch |err| {
         printErrorMessage(err);
         return;
     };
-
     sortPairs();
+    lockPairs();
+}
+
+fn lockPairs() void {
+    for (0..candidate_count) |r| {
+        for (0..candidate_count) |c| {
+            locked_matrix[r][c] = false;
+        }
+    }
 }
 
 fn sortPairs() void {
-    var swapped: bool = undefined;
-    for (0..(pair_count - 1)) |i| {
+    var swapped = false;
+    for (0..pair_count) |_| {
         swapped = false;
-        for (0..(pair_count - i - 1)) |j| {
-            if (preference[pairs.items[j].winner][pairs.items[j].loser] < preference[pairs.items[j + 1].winner][pairs.items[j + 1].loser]) {
-                std.mem.swap(Pair, &pairs.items[j], &pairs.items[j]);
+        for (0..(pair_count - 1)) |j| {
+            if (preference_matrix[pairs.items[j].winner_index][pairs.items[j].loser_index] <
+                preference_matrix[pairs.items[j + 1].winner_index][pairs.items[j + 1].loser_index])
+            {
+                std.mem.swap(Pair, &pairs.items[j], &pairs.items[j + 1]);
                 swapped = true;
             }
         }
-        if (swapped == false) break;
+        if (!swapped) break;
     }
 }
 
 fn addPairs() !void {
     for (0..candidate_count) |r| {
         for ((r + 1)..candidate_count) |c| {
-            if (preference[r][c] > preference[c][r]) {
+            if (preference_matrix[r][c] > preference_matrix[c][r]) {
                 try pairs.append(Pair{
-                    .winner = r,
-                    .loser = c,
+                    .winner_index = r,
+                    .loser_index = c,
                 });
                 pair_count += 1;
-            } else if (preference[r][c] < preference[c][r]) {
+            } else if (preference_matrix[r][c] < preference_matrix[c][r]) {
                 try pairs.append(Pair{
-                    .winner = c,
-                    .loser = r,
+                    .winner_index = c,
+                    .loser_index = r,
                 });
                 pair_count += 1;
             }
@@ -112,174 +162,172 @@ fn addPairs() !void {
     }
 }
 
-fn recoredPreference(ranks: *[MAX_CANDIDATES]usize) void {
+fn recoredPreference(ranks: *[max_candidates]usize) void {
     for (0..candidate_count) |r| {
         for ((r + 1)..candidate_count) |c| {
             if (ranks[r] != ranks[c]) {
-                preference[ranks[r]][ranks[c]] += 1;
+                preference_matrix[ranks[r]][ranks[c]] += 1;
             }
         }
     }
 }
 
-fn vote(rank: usize, name: []u8, ranks: *[MAX_CANDIDATES]usize) bool {
+fn vote(rank: usize, name: []u8, ranks: *[max_candidates]usize) bool {
+    assert(rank > 0);
     for (candidates[0..candidate_count], 0..) |candidate, i| {
         if (std.mem.eql(u8, name, candidate)) {
-            ranks.*[rank - 1] = i;
+            ranks[rank - 1] = i;
             return true;
         }
     }
     return false;
 }
 
-pub fn validateCandidates(args: [][*:0]u8) !void {
-    if (args.len < 3 or args.len > 10) {
-        return MyErrors.ArgumentNotSatisfied;
+pub fn validateVoterCandidate(voters_candidate: []u8) !void {
+    for (voters_candidate) |c| {
+        if (!std.ascii.isAlphabetic(c)) {
+            return TidemanError.NonAlphabeticCandidate;
+        }
+    }
+}
+
+pub fn validateCommandLineArg(args: [][*:0]u8) !void {
+    if (args.len < 3 or args.len > max_candidates + 1) {
+        return TidemanError.InvalidCandidateCount;
     }
 
-    for (args[1..]) |candidate| {
-        for (std.mem.span(candidate)) |c| {
+    for (args[1..]) |arg| {
+        for (std.mem.span(arg)) |c| {
             if (!std.ascii.isAlphabetic(c)) {
-                return MyErrors.CandidateNotAlphabetic;
+                return TidemanError.NonAlphabeticCandidate;
             }
         }
     }
 }
 
-//pub fn validatePreference() !void {}
-
 fn printErrorMessage(err: anyerror) void {
     switch (err) {
-        MyErrors.ArgumentNotSatisfied => {
-            print("A minimum of 2 and a maximum of {} candidates allowed\n", .{MAX_CANDIDATES});
+        TidemanError.InvalidCandidateCount => {
+            print(
+                "A minimum of {} and a maximum of {} candidates allowed\n",
+                .{ min_candidates, max_candidates },
+            );
             print("\n", .{});
-            print("Usage: zig run tideman.zig -- Candidate1 Candidate2 [Candidate3]..[Candidate9]\n", .{});
+            print(
+                "Usage: zig run tideman.zig -- Candidate1 Candidate2 [Candidate3..{}]\n",
+                .{max_candidates},
+            );
         },
-        MyErrors.CandidateNotAlphabetic => print("Candidate must be alphabetic!\n", .{}),
-        anyerror.InvalidCharacter => print("Input must be an integer!\n", .{}),
-        anyerror.StreamTooLong, anyerror.Overflow => print("A maximum of 255 voters allowed\n", .{}),
+
+        TidemanError.InvalidVoterCount => print(
+            "A minimum of {} and a maximum of {} voters allowed\n",
+            .{ min_voter_count, max_voter_count },
+        ),
+
+        TidemanError.NonAlphabeticCandidate => print(
+            "Candidate names must be alphabetic.\n",
+            .{},
+        ),
+
+        TidemanError.InputCannotBeNull => print(
+            "Input cannot be null.\n",
+            .{},
+        ),
+
+        anyerror.InvalidCharacter => print(
+            "Number of voters must be an Integer\n",
+            .{},
+        ),
+
+        anyerror.StreamTooLong, anyerror.Overflow => print(
+            "Input exceeds maximum length of {}.\n",
+            .{max_input_buffer_size},
+        ),
         else => print("Found error! Aborting...\n", .{}),
     }
 }
 
-test "validate candidate - 2 candidates" {
-    var program_name = "tideman".*;
-    var alice = "Alice".*;
-    var bob = "Bob".*;
-
+test "validate candidates minimum" {
     var args = [_][*:0]u8{
-        @ptrCast(&program_name),
-        @ptrCast(&alice),
-        @ptrCast(&bob),
+        @ptrCast(@constCast("tideman")),
     };
+    try testing.expectError(
+        TidemanError.InvalidCandidateCount,
+        validateCommandLineArg(&args),
+    );
 
-    try validateCandidates(&args);
+    var args_2 = [_][*:0]u8{
+        @ptrCast(@constCast("tideman")),
+        @ptrCast(@constCast("Alice")),
+    };
+    try testing.expectError(
+        TidemanError.InvalidCandidateCount,
+        validateCommandLineArg(&args_2),
+    );
 }
 
-test "validate candidate - only 1 candidate" {
-    var program_name = "tideman".*;
-    var alice = "Alice".*;
-
+test "validate candidates maximum" {
     var args = [_][*:0]u8{
-        @ptrCast(&program_name),
-        @ptrCast(&alice),
+        @ptrCast(@constCast("tideman")),
+        @ptrCast(@constCast("A")), // 1
+        @ptrCast(@constCast("B")), // 2
+        @ptrCast(@constCast("C")), // 3
+        @ptrCast(@constCast("D")), // 4
+        @ptrCast(@constCast("E")), // 5
+        @ptrCast(@constCast("F")), // 6
+        @ptrCast(@constCast("G")), // 7
+        @ptrCast(@constCast("H")), // 8
+        @ptrCast(@constCast("I")), // 9
+        @ptrCast(@constCast("J")), // 10
     };
-
-    try testing.expectError(MyErrors.ArgumentNotSatisfied, validateCandidates(&args));
+    try testing.expectError(
+        TidemanError.InvalidCandidateCount,
+        validateCommandLineArg(&args),
+    );
 }
 
-test "validate candidate - no candidates" {
-    var program_name = "tideman".*;
-
+test "validate candidates name to be alphabetic" {
     var args = [_][*:0]u8{
-        @ptrCast(&program_name),
+        @ptrCast(@constCast("tideman")),
+        @ptrCast(@constCast("Alice")),
+        @ptrCast(@constCast("Bob2")),
     };
+    try testing.expectError(
+        TidemanError.NonAlphabeticCandidate,
+        validateCommandLineArg(&args),
+    );
 
-    try testing.expectError(MyErrors.ArgumentNotSatisfied, validateCandidates(&args));
+    var args_2 = [_][*:0]u8{
+        @ptrCast(@constCast("tideman")),
+        @ptrCast(@constCast("Alice")),
+        @ptrCast(@constCast("Charlie")),
+        @ptrCast(@constCast("Charlie!")),
+    };
+    try testing.expectError(
+        TidemanError.NonAlphabeticCandidate,
+        validateCommandLineArg(&args_2),
+    );
 }
 
-test "validate candidate - too many candidates (10)" {
-    var program_name = "tideman".*;
-    var a = "A".*;
-    var b = "B".*;
-    var c = "C".*;
-    var d = "D".*;
-    var e = "E".*;
-    var f = "F".*;
-    var g = "G".*;
-    var h = "H".*;
-    var i = "I".*;
-    var j = "J".*;
-
+test "validate valid candidates" {
     var args = [_][*:0]u8{
-        @ptrCast(&program_name),
-        @ptrCast(&a),
-        @ptrCast(&b),
-        @ptrCast(&c),
-        @ptrCast(&d),
-        @ptrCast(&e),
-        @ptrCast(&f),
-        @ptrCast(&g),
-        @ptrCast(&h),
-        @ptrCast(&i),
-        @ptrCast(&j),
+        @ptrCast(@constCast("tideman")),
+        @ptrCast(@constCast("Alice")),
+        @ptrCast(@constCast("Charlie")),
     };
+    try validateCommandLineArg(&args);
 
-    try testing.expectError(MyErrors.ArgumentNotSatisfied, validateCandidates(&args));
-}
-
-test "validate candidate - numeric characters" {
-    var program_name = "tideman".*;
-    var alice = "Alice".*;
-    var bob2 = "Bob2".*;
-
-    var args = [_][*:0]u8{
-        @ptrCast(&program_name),
-        @ptrCast(&alice),
-        @ptrCast(&bob2),
+    var args_2 = [_][*:0]u8{
+        @ptrCast(@constCast("tideman")),
+        @ptrCast(@constCast("A")), // 1
+        @ptrCast(@constCast("B")), // 2
+        @ptrCast(@constCast("C")), // 3
+        @ptrCast(@constCast("D")), // 4
+        @ptrCast(@constCast("E")), // 5
+        @ptrCast(@constCast("F")), // 6
+        @ptrCast(@constCast("G")), // 7
+        @ptrCast(@constCast("H")), // 8
+        @ptrCast(@constCast("I")), // 9
     };
-
-    try testing.expectError(MyErrors.CandidateNotAlphabetic, validateCandidates(&args));
-}
-
-test "validate candidate - special characters" {
-    var program_name = "tideman".*;
-    var alice = "Alice".*;
-    var bob_exclaim = "Bob!".*;
-
-    var args = [_][*:0]u8{
-        @ptrCast(&program_name),
-        @ptrCast(&alice),
-        @ptrCast(&bob_exclaim),
-    };
-
-    try testing.expectError(MyErrors.CandidateNotAlphabetic, validateCandidates(&args));
-}
-
-test "validate candidate - maximum 9 candidates" {
-    var program_name = "tideman".*;
-    var alice = "Alice".*;
-    var bob = "Bob".*;
-    var charlie = "Charlie".*;
-    var david = "David".*;
-    var eve = "Eve".*;
-    var frank = "Frank".*;
-    var grace = "Grace".*;
-    var henry = "Henry".*;
-    var ivy = "Ivy".*;
-
-    var args = [_][*:0]u8{
-        @ptrCast(&program_name),
-        @ptrCast(&alice),
-        @ptrCast(&bob),
-        @ptrCast(&charlie),
-        @ptrCast(&david),
-        @ptrCast(&eve),
-        @ptrCast(&frank),
-        @ptrCast(&grace),
-        @ptrCast(&henry),
-        @ptrCast(&ivy),
-    };
-
-    try validateCandidates(&args);
+    try validateCommandLineArg(&args_2);
 }
