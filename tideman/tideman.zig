@@ -36,6 +36,7 @@ pub const TidemanError = error{
 };
 
 pub fn main() !void {
+    defer pairs.deinit();
     const args: [][*:0]u8 = std.os.argv;
     validateCommandLineArg(args) catch |err| {
         printErrorMessage(err);
@@ -51,21 +52,14 @@ pub fn main() !void {
 
     print("Number of voters (max {}): ", .{max_voter_count});
     var input_buffer: [max_input_buffer_size]u8 = undefined;
-    const user_input = stdin.readUntilDelimiterOrEof(
-        &input_buffer,
-        '\n',
-    ) catch |err| {
+    const user_input = stdin.readUntilDelimiterOrEof(&input_buffer, '\n') catch |err| {
         printErrorMessage(err);
         return;
     } orelse {
         printErrorMessage(TidemanError.InputCannotBeNull);
         return;
     };
-    const voter_count = std.fmt.parseInt(
-        u8,
-        user_input,
-        0,
-    ) catch |err| {
+    const voter_count = std.fmt.parseInt(u8, user_input, 0) catch |err| {
         printErrorMessage(err);
         return;
     };
@@ -91,10 +85,7 @@ pub fn main() !void {
             while (true) {
                 print("Rank {}: ", .{rank});
                 var input_buffer_2: [max_input_buffer_size]u8 = undefined;
-                const user_input_2 = try stdin.readUntilDelimiterOrEof(
-                    &input_buffer_2,
-                    '\n',
-                ) orelse {
+                const user_input_2 = try stdin.readUntilDelimiterOrEof(&input_buffer_2, '\n') orelse {
                     printErrorMessage(TidemanError.InputCannotBeNull);
                     return;
                 };
@@ -163,6 +154,7 @@ fn addPairs() !void {
 }
 
 fn recoredPreference(ranks: *[max_candidates]usize) void {
+    assert(ranks.len > 0);
     for (0..candidate_count) |r| {
         for ((r + 1)..candidate_count) |c| {
             if (ranks[r] != ranks[c]) {
@@ -174,6 +166,7 @@ fn recoredPreference(ranks: *[max_candidates]usize) void {
 
 fn vote(rank: usize, name: []u8, ranks: *[max_candidates]usize) bool {
     assert(rank > 0);
+    assert(name.len != 0);
     for (candidates[0..candidate_count], 0..) |candidate, i| {
         if (std.mem.eql(u8, name, candidate)) {
             ranks[rank - 1] = i;
@@ -184,6 +177,7 @@ fn vote(rank: usize, name: []u8, ranks: *[max_candidates]usize) bool {
 }
 
 pub fn validateVoterCandidate(voters_candidate: []u8) !void {
+    assert(voters_candidate.len > 0);
     for (voters_candidate) |c| {
         if (!std.ascii.isAlphabetic(c)) {
             return TidemanError.NonAlphabeticCandidate;
@@ -192,6 +186,7 @@ pub fn validateVoterCandidate(voters_candidate: []u8) !void {
 }
 
 pub fn validateCommandLineArg(args: [][*:0]u8) !void {
+    assert(args.len > 0);
     if (args.len < 3 or args.len > max_candidates + 1) {
         return TidemanError.InvalidCandidateCount;
     }
@@ -307,6 +302,12 @@ test "validate candidates name to be alphabetic" {
         TidemanError.NonAlphabeticCandidate,
         validateCommandLineArg(&args_2),
     );
+
+    const args_3: []u8 = @ptrCast(@constCast("Alice1!"));
+    try testing.expectError(
+        TidemanError.NonAlphabeticCandidate,
+        validateVoterCandidate(args_3),
+    );
 }
 
 test "validate valid candidates" {
@@ -330,4 +331,7 @@ test "validate valid candidates" {
         @ptrCast(@constCast("I")), // 9
     };
     try validateCommandLineArg(&args_2);
+
+    const args_3: []u8 = @ptrCast(@constCast("Alice"));
+    try validateVoterCandidate(args_3);
 }
