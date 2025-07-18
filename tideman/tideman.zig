@@ -5,19 +5,19 @@ const testing = std.testing;
 
 const stdin = std.io.getStdIn().reader();
 
-const max_candidates = 9;
-const min_candidates = 2;
-const max_voter_count = 20;
-const min_voter_count = 1;
-const max_input_buffer_size = 100;
+pub const max_candidates = 9;
+pub const min_candidates = 2;
+pub const max_voter_count = 20;
+pub const min_voter_count = 1;
+pub const max_input_buffer_size = 100;
 
-var pair_count: usize = 0;
-var candidate_count: usize = 0;
-var candidates: [max_candidates][]u8 = undefined;
-var preference_matrix: [max_candidates][max_candidates]u8 = undefined;
-var locked_matrix: [max_candidates][max_candidates]bool = undefined;
+pub var pair_count: usize = 0;
+pub var candidate_count: usize = 0;
+pub var candidates: [max_candidates][]u8 = undefined;
+pub var preference_matrix: [max_candidates][max_candidates]u8 = undefined;
+pub var locked_matrix: [max_candidates][max_candidates]bool = undefined;
 
-const Pair = struct {
+pub const Pair = struct {
     winner_index: usize,
     loser_index: usize,
 };
@@ -109,7 +109,7 @@ pub fn main() !void {
     lockPairs();
 }
 
-fn lockPairs() void {
+pub fn lockPairs() void {
     for (0..candidate_count) |r| {
         for (0..candidate_count) |c| {
             locked_matrix[r][c] = false;
@@ -117,7 +117,7 @@ fn lockPairs() void {
     }
 }
 
-fn sortPairs() void {
+pub fn sortPairs() void {
     var swapped = false;
     for (0..pair_count) |_| {
         swapped = false;
@@ -133,7 +133,7 @@ fn sortPairs() void {
     }
 }
 
-fn addPairs() !void {
+pub fn addPairs() !void {
     for (0..candidate_count) |r| {
         for ((r + 1)..candidate_count) |c| {
             if (preference_matrix[r][c] > preference_matrix[c][r]) {
@@ -153,7 +153,7 @@ fn addPairs() !void {
     }
 }
 
-fn recoredPreference(ranks: *[max_candidates]usize) void {
+pub fn recoredPreference(ranks: *[max_candidates]usize) void {
     assert(ranks.len > 0);
     for (0..candidate_count) |r| {
         for ((r + 1)..candidate_count) |c| {
@@ -164,7 +164,7 @@ fn recoredPreference(ranks: *[max_candidates]usize) void {
     }
 }
 
-fn vote(rank: usize, name: []u8, ranks: *[max_candidates]usize) bool {
+pub fn vote(rank: usize, name: []u8, ranks: *[max_candidates]usize) bool {
     assert(rank > 0);
     assert(name.len != 0);
     for (candidates[0..candidate_count], 0..) |candidate, i| {
@@ -200,7 +200,7 @@ pub fn validateCommandLineArg(args: [][*:0]u8) !void {
     }
 }
 
-fn printErrorMessage(err: anyerror) void {
+pub fn printErrorMessage(err: anyerror) void {
     switch (err) {
         TidemanError.InvalidCandidateCount => {
             print(
