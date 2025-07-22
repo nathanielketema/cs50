@@ -28,6 +28,12 @@ var gpa = std.heap.GeneralPurposeAllocator(.{
 const allocator = gpa.allocator();
 var pairs = std.ArrayList(Pair).init(allocator);
 
+const State = enum {
+    UNVISITED,
+    VISITING,
+    VISITED,
+};
+
 pub const TidemanError = error{
     InvalidCandidateCount,
     NonAlphabeticCandidate,
@@ -125,22 +131,20 @@ pub fn lockPairs() void {
         fn hasCycle(
             winner: usize,
             loser: usize,
-            visited: *[max_candidates]bool,
-            path: *[max_candidates]bool,
+            states: *[max_candidates]State,
         ) bool {
-            if (path[loser]) return true;
-            if (visited[loser]) return false;
+            if (states[loser] == State.VISITING) return true;
+            if (states[loser] == State.VISITED) return false;
 
-            visited[loser] = true;
-            path[loser] = true;
+            states[loser] = State.VISITING;
 
             for (0..candidate_count) |next| {
-                if (locked_matrix[loser][next] and hasCycle(winner, next, visited, path)) {
+                if (locked_matrix[loser][next] and hasCycle(winner, next, states)) {
                     return true;
                 }
             }
 
-            path[loser] = false;
+            states[loser] = State.VISITED;
             return false;
         }
     };
@@ -149,11 +153,9 @@ pub fn lockPairs() void {
         const winner = pairs.items[i].winner_index;
         const loser = pairs.items[i].loser_index;
 
-        var visited: [max_candidates]bool = [_]bool{false} ** max_candidates;
-        var path: [max_candidates]bool = [_]bool{false} ** max_candidates;
-
+        var states: [max_candidates]State = [_]State{State.UNVISITED} ** max_candidates;
         locked_matrix[winner][loser] = true;
-        if (CycleDetector.hasCycle(winner, loser, &visited, &path)) {
+        if (CycleDetector.hasCycle(winner, loser, &states)) {
             locked_matrix[winner][loser] = false;
         }
     }
