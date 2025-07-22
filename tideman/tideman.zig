@@ -107,15 +107,57 @@ pub fn main() !void {
     };
     sortPairs();
     lockPairs();
+    printWinner();
 }
 
 pub fn lockPairs() void {
+    assert(candidate_count >= min_candidates);
+    // Max possible pairs
+    assert(pair_count <= (candidate_count * (candidate_count - 1)) / 2);
+
     for (0..candidate_count) |r| {
         for (0..candidate_count) |c| {
             locked_matrix[r][c] = false;
         }
     }
 
+    const CycleDetector = struct {
+        fn hasCycle(
+            winner: usize,
+            loser: usize,
+            visited: *[max_candidates]bool,
+            path: *[max_candidates]bool,
+        ) bool {
+            if (path[loser]) return true;
+            if (visited[loser]) return false;
+
+            visited[loser] = true;
+            path[loser] = true;
+
+            for (0..candidate_count) |next| {
+                if (locked_matrix[loser][next] and hasCycle(winner, next, visited, path)) {
+                    return true;
+                }
+            }
+
+            path[loser] = false;
+            return false;
+        }
+    };
+
+    for (0..pair_count) |i| {
+        const winner = pairs.items[i].winner_index;
+        const loser = pairs.items[i].loser_index;
+
+        var visited: [max_candidates]bool = [_]bool{false} ** max_candidates;
+        var path: [max_candidates]bool = [_]bool{false} ** max_candidates;
+
+        locked_matrix[winner][loser] = true;
+        if (CycleDetector.hasCycle(winner, loser, &visited, &path)) {
+            locked_matrix[winner][loser] = false;
+        }
+    }
+}
 
 pub fn printWinner() void {
     assert(candidate_count >= min_candidates);
