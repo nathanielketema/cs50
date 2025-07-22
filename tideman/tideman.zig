@@ -115,6 +115,25 @@ pub fn lockPairs() void {
             locked_matrix[r][c] = false;
         }
     }
+
+
+pub fn printWinner() void {
+    assert(candidate_count >= min_candidates);
+    assert(candidate_count <= max_candidates);
+
+    for (0..candidate_count) |candidate| {
+        var is_source = true;
+        for (0..candidate_count) |other| {
+            if (locked_matrix[other][candidate]) {
+                is_source = false;
+                break;
+            }
+        }
+        if (is_source) {
+            print("{s}\n", .{candidates[candidate]});
+            return;
+        }
+    }
 }
 
 pub fn sortPairs() void {
