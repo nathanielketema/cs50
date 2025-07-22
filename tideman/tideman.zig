@@ -28,12 +28,6 @@ var gpa = std.heap.GeneralPurposeAllocator(.{
 const allocator = gpa.allocator();
 var pairs = std.ArrayList(Pair).init(allocator);
 
-const State = enum {
-    UNVISITED,
-    VISITING,
-    VISITED,
-};
-
 pub const TidemanError = error{
     InvalidCandidateCount,
     NonAlphabeticCandidate,
@@ -126,6 +120,12 @@ pub fn lockPairs() void {
             locked_matrix[r][c] = false;
         }
     }
+
+    const State = enum {
+        UNVISITED,
+        VISITING,
+        VISITED,
+    };
 
     const CycleDetector = struct {
         fn hasCycle(
