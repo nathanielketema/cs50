@@ -122,9 +122,9 @@ pub fn lockPairs() void {
     }
 
     const State = enum {
-        UNVISITED,
-        VISITING,
-        VISITED,
+        unvisited,
+        visiting,
+        visited,
     };
 
     const CycleDetector = struct {
@@ -133,10 +133,10 @@ pub fn lockPairs() void {
             loser: usize,
             states: *[max_candidates]State,
         ) bool {
-            if (states[loser] == State.VISITING) return true;
-            if (states[loser] == State.VISITED) return false;
+            if (states[loser] == State.visiting) return true;
+            if (states[loser] == State.visited) return false;
 
-            states[loser] = State.VISITING;
+            states[loser] = State.visiting;
 
             for (0..candidate_count) |next| {
                 if (locked_matrix[loser][next] and hasCycle(winner, next, states)) {
@@ -144,7 +144,7 @@ pub fn lockPairs() void {
                 }
             }
 
-            states[loser] = State.VISITED;
+            states[loser] = State.visited;
             return false;
         }
     };
@@ -153,7 +153,7 @@ pub fn lockPairs() void {
         const winner = pairs.items[i].winner_index;
         const loser = pairs.items[i].loser_index;
 
-        var states: [max_candidates]State = [_]State{State.UNVISITED} ** max_candidates;
+        var states: [max_candidates]State = [_]State{State.unvisited} ** max_candidates;
         locked_matrix[winner][loser] = true;
         if (CycleDetector.hasCycle(winner, loser, &states)) {
             locked_matrix[winner][loser] = false;
