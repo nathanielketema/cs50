@@ -70,5 +70,3 @@ pub fn main() !void {
         try output_file_wav.writeAll(&data_changed);
     }
 }
-
-test "test name" {}
