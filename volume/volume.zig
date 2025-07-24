@@ -5,7 +5,6 @@ const testing = std.testing;
 const assert = std.debug.assert;
 
 const header_size = 44;
-const data_size = 2;
 
 pub fn main() !void {
     var gpa: std.heap.DebugAllocator(.{}) = .init;
@@ -62,13 +61,12 @@ pub fn main() !void {
     assert(try input_file_wav.readAll(&header) == header_size);
     try output_file_wav.writeAll(&header);
 
-    var data: [data_size]u8 = undefined;
-    while (try input_file_wav.readAll(&data) == data_size) {
-        assert(data.len == data_size);
-        
-        var value: f16 = @bitCast(data);
-        value = value * factor;
-        var data_changed: [data_size]u8 = @bitCast(value);
+    var data: [2]u8 = undefined;
+    while (try input_file_wav.readAll(&data) == 2) {
+        assert(data.len == 2);
+        var value: i16 = @bitCast(data);
+        value = value * @as(i16, @intFromFloat(factor));
+        var data_changed: [2]u8 = @bitCast(value);
         try output_file_wav.writeAll(&data_changed);
     }
 }
