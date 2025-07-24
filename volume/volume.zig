@@ -1,7 +1,5 @@
 const std = @import("std");
-const stdin = std.io.getStdIn().reader();
 const print = std.debug.print;
-const testing = std.testing;
 const assert = std.debug.assert;
 
 const header_size = 44;
