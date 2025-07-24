@@ -63,7 +63,7 @@ pub fn main() !void {
     while (try input_file_wav.readAll(&data) == 2) {
         assert(data.len == 2);
         var value: i16 = @bitCast(data);
-        value = value * @as(i16, @intFromFloat(factor));
+        value = @intFromFloat(@as(f16, @floatFromInt(value)) * factor);
         var data_changed: [2]u8 = @bitCast(value);
         try output_file_wav.writeAll(&data_changed);
     }
