@@ -1,29 +1,34 @@
 const std = @import("std");
 
+pub const byte = u8;
+pub const dword = u32;
+pub const long = i32;
+pub const word = u16;
+
 pub const BitMapFileHeader = packed struct {
-    bf_type: u16,
-    bf_size: u32,
-    bf_reserved_1: u16,
-    bf_reserved_2: u16,
-    bf_off_bits: u32,
+    bf_type: word,
+    bf_size: dword,
+    bf_reserved_1: word,
+    bf_reserved_2: word,
+    bf_off_bits: dword,
 };
 
 pub const BitMapInfoHeader = packed struct {
-    bit_size: u32,
-    bit_width: i32,
-    bit_height: i32,
-    bit_planes: u16,
-    bit_bit_count: u16,
-    bit_compression: u32,
-    bit_size_image: u32,
-    bit_x_pels_per_meter: i32,
-    bit_y_pels_per_meter: i32,
-    bit_clr_used: u32,
-    bit_clr_important: u32,
+    bit_size: dword,
+    bit_width: long,
+    bit_height: long,
+    bit_planes: word,
+    bit_bit_count: word,
+    bit_compression: dword,
+    bit_size_image: dword,
+    bit_x_pels_per_meter: long,
+    bit_y_pels_per_meter: long,
+    bit_clr_used: dword,
+    bit_clr_important: dword,
 };
 
 pub const RGBTriple = packed struct {
-    blue: u8,
-    green: u8,
-    red: u8,
+    blue: byte,
+    green: byte,
+    red: byte,
 };
