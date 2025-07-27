@@ -11,18 +11,42 @@ pub const FilterType = enum {
 };
 
 pub fn apply_filter(image: *Image, filter_type: FilterType) !void {
-    assert(image.height > 0 and image.width > 0);
-    assert(image.pixels.len >= 1);
+    assert(image != null);
+    assert(image.width > 0 and image.height > 0);
+    assert(image.pixels.len == image.height);
+    for (image.pixels) |row| {
+        assert(row.len == image.width);
+    }
+
     switch (filter_type) {
         .grayscale => grayscale(image),
         .reflect => reflect(image),
         .blur => blur(image),
         .edges => edges(image),
     }
+
+    assert(image.width > 0 and image.height > 0);
+    assert(image.pixels.len == image.height);
+    for (image.pixels) |row| {
+        assert(row.len == image.width);
+    }
 }
 
 fn grayscale(image: *Image) void {
-    _ = image;
+    for (image.pixels) |row| {
+        for (row) |*pixel| {
+            const average_color: bmp.byte = @intCast((@as(bmp.word, pixel.blue) +
+                @as(bmp.word, pixel.green) +
+                @as(bmp.word, pixel.red)) / 3);
+
+            assert(average_color >= 0 and average_color <= 255);
+            pixel.* = .{
+                .blue = average_color,
+                .green = average_color,
+                .red = average_color,
+            };
+        }
+    }
 }
 
 fn reflect(image: *Image) void {
