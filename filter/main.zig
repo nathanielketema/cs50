@@ -40,6 +40,10 @@ pub fn main() !void {
 
     var image = Image.load_input_image(allocator, input_file) catch |err| {
         switch (err) {
+            Image.ImageErrors.InvalidFileName => {
+                print("<{s}> is an invalid file name!\n", .{input_file});
+                return;
+            },
             Image.ImageErrors.InvalidFormat => {
                 print("Unsupported file format.\n", .{});
                 return;
@@ -55,7 +59,10 @@ pub fn main() !void {
     defer image.deinit();
 
     assert(image.width > 0 and image.height > 0);
-    assert(image.pixels.len >= 1);
+    assert(image.pixels.len == image.height);
+    for (image.pixels) |row| {
+        assert(row.len == image.width);
+    }
 
     try filters.apply_filter(&image, filter_type);
     image.save_output_image(output_file) catch |err| {

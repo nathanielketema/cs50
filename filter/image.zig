@@ -46,6 +46,11 @@ pub fn deinit(self: *Image) void {
 
 /// Caller has to call deinit() to free up memory
 pub fn load_input_image(allocator: Allocator, file_path: []const u8) !Image {
+    assert(file_path.len > 0);
+    if(!std.mem.endsWith(u8, file_path, ".bmp")) {
+        return ImageErrors.InvalidFileName;
+    }
+
     const file = std.fs.cwd().openFile(file_path, .{}) catch {
         return ImageErrors.FileNotFound;
     };
@@ -84,12 +89,15 @@ pub fn load_input_image(allocator: Allocator, file_path: []const u8) !Image {
 
     const height: i32 = @intCast(@abs(info_header.bit_height));
     const width: i32 = info_header.bit_width;
+    assert(height > 0 and width > 0);
 
     var image = try Image.init(allocator, width, height);
     image.bmp_file_header = file_header;
     image.bmp_info_header = info_header;
 
     image.padding = 4 - @mod(@mod(image.width * @sizeOf(bmp.RGBTriple), 4), 4);
+    assert(image.padding >= 0);
+    assert(image.padding <= 4);
     for (image.pixels) |row| {
         _ = try file.readAll(std.mem.sliceAsBytes(row));
         try file.seekBy(image.padding);
@@ -99,12 +107,12 @@ pub fn load_input_image(allocator: Allocator, file_path: []const u8) !Image {
 }
 
 pub fn save_output_image(self: *const Image, file_path: []const u8) !void {
-    if (!std.mem.endsWith(u8, file_path, ".bmp")) {
+    assert(file_path.len > 0);
+    if (!std.mem.endsWith(u8, file_path, ".bmp") or file_path.len < 5) {
         return ImageErrors.InvalidFileName;
     }
-    if (file_path.len < 5) {
-        return ImageErrors.InvalidFileName;
-    }
+    assert(self.width > 0 and self.height > 0);
+    assert(self.padding >= 0 and self.padding <= 4);
 
     var output_dir = try std.fs.cwd().openDir("output", .{});
     defer output_dir.close();

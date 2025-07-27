@@ -11,7 +11,6 @@ pub const FilterType = enum {
 };
 
 pub fn apply_filter(image: *Image, filter_type: FilterType) !void {
-    assert(image != null);
     assert(image.width > 0 and image.height > 0);
     assert(image.pixels.len == image.height);
     for (image.pixels) |row| {
