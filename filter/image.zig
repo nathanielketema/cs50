@@ -95,9 +95,9 @@ pub fn load_input_image(allocator: Allocator, file_path: []const u8) !Image {
     image.bmp_file_header = file_header;
     image.bmp_info_header = info_header;
 
-    image.padding = 4 - @mod(@mod(image.width * @sizeOf(bmp.RGBTriple), 4), 4);
+    image.padding = @mod(4 - @mod(image.width * @sizeOf(bmp.RGBTriple), 4), 4);
     assert(image.padding >= 0);
-    assert(image.padding <= 4);
+    assert(image.padding <= 3);
     for (image.pixels) |row| {
         _ = try file.readAll(std.mem.sliceAsBytes(row));
         try file.seekBy(image.padding);
@@ -112,7 +112,7 @@ pub fn save_output_image(self: *const Image, file_path: []const u8) !void {
         return ImageErrors.InvalidFileName;
     }
     assert(self.width > 0 and self.height > 0);
-    assert(self.padding >= 0 and self.padding <= 4);
+    assert(self.padding >= 0 and self.padding <= 3);
 
     var output_dir = try std.fs.cwd().openDir("output", .{});
     defer output_dir.close();
