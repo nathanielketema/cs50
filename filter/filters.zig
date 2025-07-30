@@ -48,8 +48,15 @@ fn grayscale(image: *Image) void {
     }
 }
 
+// Swapping left pixels with right to get the mirror look
 fn reflect(image: *Image) void {
-    _ = image;
+    const width: usize = @intCast(image.width);
+    const before = image.pixels[0][0];
+    for (image.pixels, 0..) |*row, i| {
+        const j = width - 1;
+        std.mem.swap(bmp.RGBTriple, &row.*[i], &row.*[j - i]);
+    }
+    assert(before != image.pixels[0][0]);
 }
 
 fn blur(image: *Image) void {
