@@ -44,6 +44,20 @@ pub fn deinit(self: *Image) void {
     self.allocator.free(self.pixels);
 }
 
+pub fn copy(self: *const Image) !Image {
+    var new_image = try Image.init(self.allocator, self.width, self.height);
+    new_image.bmp_file_header = self.bmp_file_header;
+    new_image.bmp_info_header = self.bmp_info_header;
+    new_image.padding = self.padding;
+
+    const height: usize = @intCast(self.height);
+    for (0..height) |i| {
+        @memcpy(new_image.pixels[i], self.pixels[i]);
+    }
+    
+    return new_image;
+}
+
 /// Caller has to call deinit() to free up memory
 pub fn load_input_image(allocator: Allocator, file_path: []const u8) !Image {
     assert(file_path.len > 0);
