@@ -5,7 +5,7 @@ pub const dword = u32;
 pub const long = i32;
 pub const word = u16;
 
-pub const BitMapFileHeader = packed struct {
+pub const BitMapFileHeader = extern struct {
     bf_type: word,
     bf_size: dword,
     bf_reserved_1: word,
@@ -13,7 +13,7 @@ pub const BitMapFileHeader = packed struct {
     bf_off_bits: dword,
 };
 
-pub const BitMapInfoHeader = packed struct {
+pub const BitMapInfoHeader = extern struct {
     bit_size: dword,
     bit_width: long,
     bit_height: long,
@@ -27,7 +27,7 @@ pub const BitMapInfoHeader = packed struct {
     bit_clr_important: dword,
 };
 
-pub const RGBTriple = packed struct {
+pub const RGBTriple = extern struct {
     blue: byte,
     green: byte,
     red: byte,
