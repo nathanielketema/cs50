@@ -6,6 +6,45 @@ const testing = std.testing;
 const block_size = 512;
 const output_dir = "output";
 
+const WriteFile = struct {
+    file_name: []u8,
+    file: std.fs.File,
+    allocator: std.mem.Allocator,
+
+    fn init(allocator: std.mem.Allocator) WriteFile {
+        return .{
+            .file_name = undefined,
+            .file = undefined,
+            .allocator = allocator,
+        };
+    }
+
+    fn deinit(self: *WriteFile) void {
+        self.allocator.free(self.file_name);
+    }
+
+    fn new_file_name(
+        self: *WriteFile,
+        comptime fmt: []const u8,
+        args: anytype,
+    ) !void {
+        self.file_name = try std.fmt.allocPrint(self.allocator, fmt, args);
+        self.allocator = self.allocator;
+    }
+
+    fn create_file(self: *WriteFile) !void {
+        self.file = try std.fs.cwd().createFile(self.file_name, .{});
+    }
+
+    fn write_file(self: *WriteFile, bytes: []const u8) !void {
+        try self.file.writeAll(bytes);
+    }
+
+    fn close_file(self: *WriteFile) void {
+        self.file.close();
+    }
+};
+
 pub fn main() !void {
     var gpa: std.heap.DebugAllocator(.{}) = .init;
     defer assert(gpa.deinit() == .ok);
@@ -29,26 +68,40 @@ pub fn main() !void {
     defer input_file.close();
     try std.fs.Dir.makeDir(std.fs.cwd(), output_dir);
 
-
     var buffer: [block_size]u8 = undefined;
     var count: u8 = 0;
+    var found: bool = false;
+    var output_jpegs = WriteFile.init(allocator);
+    defer output_jpegs.close_file();
 
     // Read input_file in block_size bytes(blocks) until the end of input_file
     while (try input_file.reader().readAll(&buffer) == block_size) {
         assert(buffer.len == block_size);
-        // Accept if JPEG starts with the first three bytes of 0xff, 0xd8, 0xff, 
+        // Accept if JPEG starts with the first three bytes of 0xff, 0xd8, 0xff,
         // and for the fourth byte, accept all bytes that start with 0xe
         if (buffer[0] == 0xff and buffer[1] == 0xd8 and buffer[2] == 0xff and
             (buffer[3] & 0xf0 == 0xe0))
         {
-            // Create files of form 001.jpeg in the output directory
-            const output_file_name = try std.fmt.allocPrint(allocator, "{s}/{d:0<3}.jpeg", .{output_dir, count});
-            defer allocator.free(output_file_name);
-            const output_file = try std.fs.cwd().createFile(output_file_name, .{});
-            defer output_file.close();
+            if (found) {
+                output_jpegs.close_file();
+            }
+
             count += 1;
+            found = true;
+
+            // Create files of form 001.jpeg in the output directory
+            try output_jpegs.new_file_name(
+                "{s}/{d:0>3}.jpeg",
+                .{ output_dir, count },
+            );
+            defer output_jpegs.deinit();
+            try output_jpegs.create_file();
+            try output_jpegs.write_file(&buffer);
 
         } else {
+            if (found) {
+                try output_jpegs.write_file(&buffer);
+            }
         }
     }
 }
@@ -65,4 +118,19 @@ test "check bitwise operation" {
     }
 
     try testing.expect(ok);
+}
+
+test "file name check" {
+    const allocator = std.testing.allocator;
+
+    for (0..21) |count| {
+        const name = try std.fmt.allocPrint(
+            allocator,
+            "{s}/{d:0>3}.jpeg",
+            .{ output_dir, count },
+        );
+
+        print("name: {s}\n", .{name});
+        allocator.free(name);
+    }
 }
