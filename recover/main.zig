@@ -21,27 +21,22 @@ const WriteFile = struct {
 
     fn deinit(self: *WriteFile) void {
         self.allocator.free(self.file_name);
+        self.file.close();
     }
 
-    fn new_file_name(
-        self: *WriteFile,
-        comptime fmt: []const u8,
-        args: anytype,
-    ) !void {
+    fn new_file_name(self: *WriteFile, comptime fmt: []const u8, args: anytype) !void {
         self.file_name = try std.fmt.allocPrint(self.allocator, fmt, args);
-        self.allocator = self.allocator;
     }
 
     fn create_file(self: *WriteFile) !void {
-        self.file = try std.fs.cwd().createFile(self.file_name, .{});
+        self.file = std.fs.cwd().createFile(self.file_name, .{}) catch {
+            print("{s} cannot be created\n", .{self.file_name});
+            return;
+        };
     }
 
     fn write_file(self: *WriteFile, bytes: []const u8) !void {
         try self.file.writeAll(bytes);
-    }
-
-    fn close_file(self: *WriteFile) void {
-        self.file.close();
     }
 };
 
@@ -66,13 +61,19 @@ pub fn main() !void {
         return;
     };
     defer input_file.close();
-    try std.fs.Dir.makeDir(std.fs.cwd(), output_dir);
+
+    std.fs.Dir.makeDir(std.fs.cwd(), output_dir) catch |err| {
+        switch (err) {
+            error.PathAlreadyExists => {},
+            else => return err,
+        }
+    };
 
     var buffer: [block_size]u8 = undefined;
-    var count: u8 = 0;
+    var count: u32 = 0;
     var found: bool = false;
     var output_jpegs = WriteFile.init(allocator);
-    defer output_jpegs.close_file();
+    defer output_jpegs.deinit();
 
     // Read input_file in block_size bytes(blocks) until the end of input_file
     while (try input_file.reader().readAll(&buffer) == block_size) {
@@ -83,7 +84,7 @@ pub fn main() !void {
             (buffer[3] & 0xf0 == 0xe0))
         {
             if (found) {
-                output_jpegs.close_file();
+                output_jpegs.deinit();
             }
 
             count += 1;
@@ -94,10 +95,8 @@ pub fn main() !void {
                 "{s}/{d:0>3}.jpeg",
                 .{ output_dir, count },
             );
-            defer output_jpegs.deinit();
             try output_jpegs.create_file();
             try output_jpegs.write_file(&buffer);
-
         } else {
             if (found) {
                 try output_jpegs.write_file(&buffer);
