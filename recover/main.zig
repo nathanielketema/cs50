@@ -3,7 +3,16 @@ const print = std.debug.print;
 const assert = std.debug.assert;
 const testing = std.testing;
 
-const block_size = 512;
+const JPEG = struct {
+    const block_size = 512;
+    const signature = .{
+        0xff,
+        0xd8,
+        0xff,
+        0xe0,
+    };
+};
+
 const output_dir = "output";
 
 const WriteFile = struct {
@@ -38,7 +47,7 @@ const WriteFile = struct {
     }
 
     fn write_file(self: *WriteFile, bytes: []const u8) !void {
-        assert(bytes.len == block_size);
+        assert(bytes.len == JPEG.block_size);
         try self.file.writeAll(bytes);
     }
 };
@@ -72,19 +81,19 @@ pub fn main() !void {
         }
     };
 
-    var buffer: [block_size]u8 = undefined;
+    var buffer: [JPEG.block_size]u8 = undefined;
     var count: u32 = 0;
     var found: bool = false;
     var output_jpegs = WriteFile.init(allocator);
     defer output_jpegs.deinit();
 
-    // Read input_file in block_size bytes(blocks) until the end of input_file
-    while (try input_file.reader().readAll(&buffer) == block_size) {
-        assert(buffer.len == block_size);
+    // Read input_file in JPEG.block_size bytes(blocks) until the end of input_file
+    while (try input_file.reader().readAll(&buffer) == JPEG.block_size) {
+        assert(buffer.len == JPEG.block_size);
         // Accept if JPEG starts with the first three bytes of 0xff, 0xd8, 0xff,
         // and for the fourth byte, accept all bytes that start with 0xe
-        if (buffer[0] == 0xff and buffer[1] == 0xd8 and buffer[2] == 0xff and
-            (buffer[3] & 0xf0 == 0xe0))
+        if (buffer[0] == JPEG.signature[0] and buffer[1] == JPEG.signature[1] and
+            buffer[2] == JPEG.signature[2] and (buffer[3] & 0xf0 == JPEG.signature[3]))
         {
             if (found) {
                 output_jpegs.deinit();
