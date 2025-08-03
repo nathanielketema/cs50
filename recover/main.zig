@@ -25,10 +25,12 @@ const WriteFile = struct {
     }
 
     fn new_file_name(self: *WriteFile, comptime fmt: []const u8, args: anytype) !void {
+        assert(fmt.len > 0);
         self.file_name = try std.fmt.allocPrint(self.allocator, fmt, args);
     }
 
     fn create_file(self: *WriteFile) !void {
+        assert(self.file_name.len > 0);
         self.file = std.fs.cwd().createFile(self.file_name, .{}) catch {
             print("{s} cannot be created\n", .{self.file_name});
             return;
@@ -36,6 +38,7 @@ const WriteFile = struct {
     }
 
     fn write_file(self: *WriteFile, bytes: []const u8) !void {
+        assert(bytes.len == block_size);
         try self.file.writeAll(bytes);
     }
 };
