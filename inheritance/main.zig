@@ -95,10 +95,6 @@ const Person = struct {
     }
 
     fn print_family(self: *Person, generation: u8) void {
-        // Base case
-        if (self.parents == null and self.alleles == null) {
-            return;
-        }
         assert(generation <= 10);
         for (0..generation * indent_length) |_| {
             print(" ", .{});
