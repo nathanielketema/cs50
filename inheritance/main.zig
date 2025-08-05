@@ -6,9 +6,12 @@ const testing = std.testing;
 const indent_length = 4;
 const generations = 3;
 
+// Global pseudo random number generator
 var global_prng: std.Random.DefaultPrng = undefined;
 var prng_initialized = false;
 
+// Zig doesn't let us call a runtime function (nanoTimestamp()) at a global scope
+// So this function will be called when needed at runtime
 fn init_prng() void {
     if (!prng_initialized) {
         const seed: u64 = @intCast(std.time.nanoTimestamp());
@@ -58,6 +61,7 @@ const Person = struct {
     }
 
     fn create_family(allocator: std.mem.Allocator, generation: u8) !Person {
+        assert(generation > 0 and generation <= 10);
         var person: Person = .{
             .parents = null,
             .alleles = null,
@@ -95,7 +99,7 @@ const Person = struct {
         if (self.parents == null and self.alleles == null) {
             return;
         }
-
+        assert(generation <= 10);
         for (0..generation * indent_length) |_| {
             print(" ", .{});
         }
@@ -152,4 +156,16 @@ pub fn main() !void {
 test "check random_allele" {
     const foo = Allele.random_allele();
     try testing.expectEqual(Allele, @TypeOf(foo));
+    try testing.expect(foo == .A or foo == .B or foo == .O);
+}
+
+test "check memory leaks" {
+    var gpa: std.heap.GeneralPurposeAllocator(.{}) = .init;
+    defer assert(gpa.deinit() == .ok);
+    const allocator = gpa.allocator();
+
+    for (0..10) |_| {
+        var person = try Person.create_family(allocator, 3);
+        person.free();
+    }
 }
