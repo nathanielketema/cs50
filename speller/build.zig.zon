@@ -1,0 +1,11 @@
+.{
+    .name = .speller,
+    .version = "0.0.0",
+    .fingerprint = 0x8ca0153988f6b310,
+    .minimum_zig_version = "0.14.1",
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
