@@ -66,11 +66,10 @@ fn load(self: *Self, dictionary: []const u8) !void {
     if (self.hash_table[key]) |*head| {
         node.next = head.*;
         head.* = node;
-        self.number_of_words_stored += 1;
     } else {
         self.hash_table[key] = node;
-        self.number_of_words_stored += 1;
     }
+        self.number_of_words_stored += 1;
 }
 
 /// Returns number of words in dictionary
