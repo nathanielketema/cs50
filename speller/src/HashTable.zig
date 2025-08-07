@@ -3,11 +3,10 @@ const assert = std.debug.assert;
 const print = std.debug.print;
 const testing = std.testing;
 
-// todo: case insensitivity
-
 const max_word_length = 45;
-const bucket_size = 26; // todo: change later
+const bucket_size = 160_000; // todo: should be defined in main
 
+// The name size is already used by a method
 number_of_words_stored: u32,
 hash_table: [bucket_size]?*Node,
 allocator: std.mem.Allocator,
@@ -18,8 +17,13 @@ const Node = struct {
 };
 
 fn hash(word: []const u8) u32 {
-    _ = word;
-    return 2;
+    assert(word.len <= max_word_length);
+    var key: u32 = undefined;
+    for (word, 0..) |c, i| {
+        key = @as(u32, @intCast(c)) * 23 * @as(u32, @intCast(i));
+    }
+
+    return @mod(key, bucket_size);
 }
 
 const Self = @This();
@@ -45,11 +49,11 @@ fn deinit(self: *Self) void {
 
 /// Loads dictionary into memory
 fn load(self: *Self, dictionary: []const u8) !void {
+    // Program assumes the below to be a requirement
     assert(dictionary.len > 0);
     assert(dictionary.len <= max_word_length);
 
     const key = hash(dictionary);
-    assert(key >= 0);
     assert(key < bucket_size);
 
     const node = try self.allocator.create(Node);
@@ -74,13 +78,23 @@ fn size(self: Self) u32 {
     return self.number_of_words_stored;
 }
 
-fn check(self: Self, word: []const u8) bool {
-    const key = hash(word);
+fn check(self: Self, word_to_check: []const u8) bool {
+    assert(word_to_check.len > 0);
+    assert(word_to_check.len <= max_word_length);
+
+    // check assumes the hash table store only lowercase words
+    var word: [max_word_length]u8 = undefined;
+    for (word_to_check, 0..) |c, i| {
+        word[i] = std.ascii.toLower(c);
+    }
+
+    const key = hash(word[0..word_to_check.len]);
+    assert(key < bucket_size);
 
     var current: ?*Node = self.hash_table[key];
     while (current) |node| {
         current = node.next;
-        if (std.mem.eql(u8, word, node.word)) {
+        if (std.mem.eql(u8, word[0..word_to_check.len], node.word)) {
             return true;
         }
     }
@@ -102,6 +116,8 @@ test "test" {
     try foo.load("hello");
     try testing.expect(foo.number_of_words_stored == 2);
 
-    try testing.expect(foo.check("hi"));
+    try testing.expect(foo.check("Hi"));
     try testing.expect(!foo.check("bar"));
+    try testing.expect(foo.check("hElLo"));
+    try testing.expect(foo.check("hello"));
 }
