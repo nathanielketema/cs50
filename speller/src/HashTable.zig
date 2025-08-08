@@ -28,7 +28,7 @@ fn hash(word: []const u8) u32 {
 
 const Self = @This();
 
-fn init(allocator: std.mem.Allocator) Self {
+pub fn init(allocator: std.mem.Allocator) Self {
     return .{
         .number_of_words_stored = 0,
         .hash_table = .{null} ** bucket_size,
@@ -36,7 +36,7 @@ fn init(allocator: std.mem.Allocator) Self {
     };
 }
 
-fn deinit(self: *Self) void {
+pub fn deinit(self: *Self) void {
     for (&self.hash_table) |*head| {
         var current: ?*Node = head.*;
         while (current) |node| {
@@ -48,7 +48,7 @@ fn deinit(self: *Self) void {
 }
 
 /// Loads dictionary into memory
-fn load(self: *Self, dictionary: []const u8) !void {
+pub fn load(self: *Self, dictionary: []const u8) !void {
     // Program assumes the below to be a requirement
     assert(dictionary.len > 0);
     assert(dictionary.len <= max_word_length);
@@ -69,15 +69,15 @@ fn load(self: *Self, dictionary: []const u8) !void {
     } else {
         self.hash_table[key] = node;
     }
-        self.number_of_words_stored += 1;
+    self.number_of_words_stored += 1;
 }
 
 /// Returns number of words in dictionary
-fn size(self: Self) u32 {
+pub fn size(self: Self) u32 {
     return self.number_of_words_stored;
 }
 
-fn check(self: Self, word_to_check: []const u8) bool {
+pub fn check(self: Self, word_to_check: []const u8) bool {
     assert(word_to_check.len > 0);
     assert(word_to_check.len <= max_word_length);
 
