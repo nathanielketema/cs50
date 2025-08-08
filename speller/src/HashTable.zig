@@ -1,10 +1,10 @@
 const std = @import("std");
+const main = @import("main.zig");
 const assert = std.debug.assert;
 const print = std.debug.print;
 const testing = std.testing;
-
-const max_word_length = 45;
-const bucket_size = 160_000; // todo: should be defined in main
+const max_word_length = main.max_word_length;
+const bucket_size = main.bucket_size;
 
 // The name size is already used by a method
 number_of_words_stored: u32,
