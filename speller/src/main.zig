@@ -106,10 +106,7 @@ pub fn main() !void {
         };
 
         if (std.ascii.isAlphabetic(c) or (c == '\'' and index > 0)) {
-            word[index] = c;
-            index += 1;
-
-            if (index > max_word_length) {
+            if (index >= max_word_length) {
                 while (true) {
                     const next_c = text_reader.readByte() catch |err| {
                         switch (err) {
@@ -120,6 +117,9 @@ pub fn main() !void {
                     if (!std.ascii.isAlphabetic(next_c)) break;
                 }
                 index = 0;
+            } else {
+                word[index] = c;
+                index += 1;
             }
         } else if (std.ascii.isDigit(c)) {
             while (true) {
@@ -133,7 +133,9 @@ pub fn main() !void {
             }
             index = 0;
         } else if (index > 0) {
-            word[index] = 0;
+            if (index < max_word_length) {
+                word[index] = 0;
+            }
             words += 1;
 
             const check_start = std.time.nanoTimestamp();
