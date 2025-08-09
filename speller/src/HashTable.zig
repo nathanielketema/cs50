@@ -1,7 +1,6 @@
 const std = @import("std");
 const main = @import("main.zig");
 const assert = std.debug.assert;
-const print = std.debug.print;
 const testing = std.testing;
 const max_word_length = main.max_word_length;
 const bucket_size = main.bucket_size;
@@ -18,9 +17,9 @@ const Node = struct {
 
 fn hash(word: []const u8) u32 {
     assert(word.len <= max_word_length);
-    var key: u32 = undefined;
+    var key: u32 = 0;
     for (word, 0..) |c, i| {
-        key = @as(u32, @intCast(c)) * 23 * @as(u32, @intCast(i));
+        key += @as(u32, @intCast(c)) * 23 * @as(u32, @intCast(i));
     }
 
     return @mod(key, bucket_size);
@@ -41,6 +40,7 @@ pub fn deinit(self: *Self) void {
         var current: ?*Node = head.*;
         while (current) |node| {
             current = node.next;
+            self.allocator.free(node.word);
             self.allocator.destroy(node);
         }
         head.* = null;
