@@ -60,7 +60,10 @@ pub fn main() !void {
     defer user_input.deinit();
     stdin.readUntilDelimiterArrayList(&user_input, '\n', max_words) catch |err| {
         switch (err) {
-            error.StreamTooLong => print("Input too long! (max: 100 words)\n", .{}),
+            error.StreamTooLong => {
+                print("Input too long! (max: 100 words)\n", .{});
+                return;
+            },
             else => {
                 print("Error! Program quiting...\n", .{});
                 return;
