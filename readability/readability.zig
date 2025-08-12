@@ -2,6 +2,9 @@ const std = @import("std");
 const print = std.debug.print;
 const testing = std.testing;
 const assert = std.debug.assert;
+const stdin = std.io.getStdIn().reader();
+
+const max_words = 100;
 
 const Grade = union(enum) {
     before_grade_1,
@@ -48,13 +51,31 @@ const Grade = union(enum) {
 };
 
 pub fn main() !void {
-    const foo: Grade = .grade_1;
-    print("test: {s}\n", .{foo.to_string()});
+    var gpa: std.heap.DebugAllocator(.{}) = .init;
+    defer assert(gpa.deinit() == .ok);
+    const allocator = gpa.allocator();
+
+    print("Text: ", .{});
+    var user_input: std.ArrayList(u8) = .init(allocator);
+    defer user_input.deinit();
+    stdin.readUntilDelimiterArrayList(&user_input, '\n', max_words) catch |err| {
+        switch (err) {
+            error.StreamTooLong => print("Input too long! (max: 100 words)\n", .{}),
+            else => {
+                print("Error! Program quiting...\n", .{});
+                return;
+            },
+        }
+    };
+    assert(user_input.items.len != 0);
+
+    const result = readability_grade(user_input.items);
+    print("{s}", .{result.to_string()});
 }
 
 fn readability_grade(sentence: []const u8) Grade {
     _ = sentence;
-    return .before_grade_1;
+    return .grade_5;
 }
 
 test "test from cs50" {
