@@ -2,9 +2,10 @@ const std = @import("std");
 const print = std.debug.print;
 const testing = std.testing;
 const assert = std.debug.assert;
+const math = std.math;
 const stdin = std.io.getStdIn().reader();
 
-const max_words = 100;
+const max_words = 500;
 
 const Grade = union(enum) {
     before_grade_1,
@@ -79,9 +80,52 @@ pub fn main() !void {
     }
 }
 
-fn readability_grade(sentence: []const u8) Grade {
-    _ = sentence;
-    return .grade_5;
+fn readability_grade(input: []const u8) Grade {
+    var letters: u16 = 0;
+    var words: u16 = 0;
+    var sentences: u16 = 0;
+
+    // todo: remove
+    letters += 1;
+    words += 1;
+    sentences += 1;
+
+    for (input) |c| {
+        if (std.ascii.isAlphabetic(c)) {}
+    }
+
+    // Coleman-Liau index:
+    //    index = 0.0588 * L - 0.296 * S - 15.8
+    // where L is the average number of letter in 100 words, (letters / words) * 100
+    //       S is the average number of sentences in 100 words, (sentences / words) * 100
+    assert(words != 0);
+    const L = @divTrunc(@as(f16, @floatFromInt(letters)), @as(f16, @floatFromInt(words))) * 100;
+    const S = @divTrunc(@as(f16, @floatFromInt(sentences)), @as(f16, @floatFromInt(words))) * 100;
+    const index: i32 = @intFromFloat(0.0588 * L - 0.296 * S - 15.8);
+
+    if (index < 1) {
+        return .before_grade_1;
+    } else {
+        switch (index) {
+            1 => return .grade_1,
+            2 => return .grade_2,
+            3 => return .grade_3,
+            4 => return .grade_4,
+            5 => return .grade_5,
+            6 => return .grade_6,
+            7 => return .grade_7,
+            8 => return .grade_8,
+            9 => return .grade_9,
+            10 => return .grade_10,
+            11 => return .grade_11,
+            12 => return .grade_12,
+            13 => return .grade_13,
+            14 => return .grade_14,
+            15 => return .grade_15,
+            16 => return .grade_16,
+            else => return .grade_16_plus,
+        }
+    }
 }
 
 test "test from cs50" {
