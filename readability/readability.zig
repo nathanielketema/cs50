@@ -6,50 +6,6 @@ const stdin = std.io.getStdIn().reader();
 
 const max_words = 500;
 
-const Grade = enum {
-    before_grade_1,
-    grade_1,
-    grade_2,
-    grade_3,
-    grade_4,
-    grade_5,
-    grade_6,
-    grade_7,
-    grade_8,
-    grade_9,
-    grade_10,
-    grade_11,
-    grade_12,
-    grade_13,
-    grade_14,
-    grade_15,
-    grade_16,
-    grade_16_plus,
-
-    fn to_string(grade: Grade) []const u8 {
-        switch (grade) {
-            .before_grade_1 => return "Before Grade 1\n",
-            .grade_1 => return "Grade 1\n",
-            .grade_2 => return "Grade 2\n",
-            .grade_3 => return "Grade 3\n",
-            .grade_4 => return "Grade 4\n",
-            .grade_5 => return "Grade 5\n",
-            .grade_6 => return "Grade 6\n",
-            .grade_7 => return "Grade 7\n",
-            .grade_8 => return "Grade 8\n",
-            .grade_9 => return "Grade 9\n",
-            .grade_10 => return "Grade 10\n",
-            .grade_11 => return "Grade 11\n",
-            .grade_12 => return "Grade 12\n",
-            .grade_13 => return "Grade 13\n",
-            .grade_14 => return "Grade 14\n",
-            .grade_15 => return "Grade 15\n",
-            .grade_16 => return "Grade 16\n",
-            .grade_16_plus => return "Grade 16+\n",
-        }
-    }
-};
-
 pub fn main() !void {
     print("Text: ", .{});
     var buffer: [max_words]u8 = undefined;
@@ -71,15 +27,21 @@ pub fn main() !void {
     // Unwrap optional
     if (user_input) |input| {
         assert(input.len != 0);
-        const result = readability_grade(user_input.?);
-        print("{s}", .{result.to_string()});
+        const result = readability_grade(input);
+        if (result < 1) {
+            print("Before Grade 1\n", .{});
+        } else if (result > 16) {
+            print("Grade 16+\n", .{});
+        } else {
+            print("Grade {d}\n", .{result});
+        }
     } else {
         print("\nInput not provided!\n", .{});
         return;
     }
 }
 
-fn readability_grade(input: []const u8) Grade {
+fn readability_grade(input: []const u8) i32 {
     var letters: u16 = 0;
     var words: u16 = 0;
     var sentences: u16 = 0;
@@ -110,36 +72,14 @@ fn readability_grade(input: []const u8) Grade {
     assert(S != 0);
     const index: i32 = @intFromFloat(@round(0.0588 * L - 0.296 * S - 15.8));
 
-    if (index < 1) {
-        return .before_grade_1;
-    } else {
-        switch (index) {
-            1 => return .grade_1,
-            2 => return .grade_2,
-            3 => return .grade_3,
-            4 => return .grade_4,
-            5 => return .grade_5,
-            6 => return .grade_6,
-            7 => return .grade_7,
-            8 => return .grade_8,
-            9 => return .grade_9,
-            10 => return .grade_10,
-            11 => return .grade_11,
-            12 => return .grade_12,
-            13 => return .grade_13,
-            14 => return .grade_14,
-            15 => return .grade_15,
-            16 => return .grade_16,
-            else => return .grade_16_plus,
-        }
-    }
+    return index;
 }
 
 test "before grade 1" {
     try testing.expect(
         readability_grade(
             "One fish. Two fish. Red fish. Blue fish.",
-        ) == .before_grade_1,
+        ) < 1,
     );
 }
 
@@ -148,7 +88,7 @@ test "grade 2" {
         readability_grade(
             "Would you like them here or there? I would not like them here or there. " ++
                 "I would not like them anywhere.",
-        ) == .grade_2,
+        ) == 2,
     );
 }
 
@@ -157,7 +97,7 @@ test "grade 3" {
         readability_grade(
             "Congratulations! Today is your day. You're off to Great Places! " ++
                 "You're off and away!",
-        ) == .grade_3,
+        ) == 3,
     );
 }
 
@@ -168,7 +108,7 @@ test "grade 5" {
                 "he hated the summer holidays more than any other time of year. For another, " ++
                 "he really wanted to do his homework, but was forced to do it in secret," ++
                 "in the dead of the night. And he also happened to be a wizard.",
-        ) == .grade_5,
+        ) == 5,
     );
 }
 
@@ -177,7 +117,7 @@ test "grade 7" {
         readability_grade(
             "In my younger and more vulnerable years my father gave me some advice that " ++
                 "I've been turning over in my mind ever since.",
-        ) == .grade_7,
+        ) == 7,
     );
 }
 
@@ -188,7 +128,7 @@ test "grade 8" {
                 "and of having nothing to do: once or twice she had peeped into the book her " ++
                 "sister was reading, but it had no pictures or conversations in it, \"and " ++
                 "what is the use of a book,\" thought Alice \"without pictures or conversation?\"",
-        ) == .grade_8,
+        ) == 8,
     );
 
     try testing.expect(
@@ -199,7 +139,7 @@ test "grade 8" {
                 "His left arm was somewhat shorter than his right; when he stood or walked, " ++
                 "the back of his hand was at right angles to his body, his thumb " ++
                 "parallel to his thigh.",
-        ) == .grade_8,
+        ) == 8,
     );
 }
 
@@ -208,7 +148,7 @@ test "grade 9" {
         readability_grade(
             "There are more things in Heaven and Earth, Horatio, " ++
                 "than are dreamt of in your philosophy.",
-        ) == .grade_9,
+        ) == 9,
     );
 }
 
@@ -220,7 +160,7 @@ test "grade 10" {
                 "the vile wind, slipped quickly through the glass doors of Victory Mansions, " ++
                 "though not quickly enough to prevent a swirl of gritty dust from entering " ++
                 "along with him.",
-        ) == .grade_10,
+        ) == 10,
     );
 }
 
@@ -231,6 +171,6 @@ test "grade 16 plus" {
                 "properties of graphs, digraphs, integers, arrays of integers, " ++
                 "finite families of finite sets, boolean formulas and elements of " ++
                 "other countable domains.",
-        ) == .grade_16_plus,
+        ) > 16,
     );
 }
