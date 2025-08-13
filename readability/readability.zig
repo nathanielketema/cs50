@@ -128,27 +128,33 @@ fn readability_grade(input: []const u8) Grade {
     }
 }
 
-test "test from cs50" {
+test "before grade 1" {
     try testing.expect(
         readability_grade(
             "One fish. Two fish. Red fish. Blue fish.",
         ) == .before_grade_1,
     );
+}
 
+test "grade 2" {
     try testing.expect(
         readability_grade(
             "Would you like them here or there? I would not like them here or there. " ++
                 "I would not like them anywhere. ",
         ) == .grade_2,
     );
+}
 
+test "grade 3" {
     try testing.expect(
         readability_grade(
             "Congratulations! Today is your day. You're off to Great Places! " ++
-                "You're off and away! ",
+                "You're off and away!",
         ) == .grade_3,
     );
+}
 
+test "grade 5" {
     try testing.expect(
         readability_grade(
             "Harry Potter was a highly unusual boy in many ways. For one thing, " ++
@@ -157,14 +163,18 @@ test "test from cs50" {
                 "in the dead of the night. And he also happened to be a wizard.",
         ) == .grade_5,
     );
+}
 
+test "grade 7" {
     try testing.expect(
         readability_grade(
             "In my younger and more vulnerable years my father gave me some advice that " ++
                 "I've been turning over in my mind ever since.",
         ) == .grade_7,
     );
+}
 
+test "grade 8" {
     try testing.expect(
         readability_grade(
             "Alice was beginning to get very tired of sitting by her sister on the bank, " ++
@@ -184,14 +194,18 @@ test "test from cs50" {
                 "parallel to his thigh. ",
         ) == .grade_8,
     );
+}
 
+test "grade 9" {
     try testing.expect(
         readability_grade(
             "There are more things in Heaven and Earth, Horatio, " ++
                 "than are dreamt of in your philosophy. ",
         ) == .grade_9,
     );
+}
 
+test "grade 10" {
     try testing.expect(
         readability_grade(
             "It was a bright cold day in April, and the clocks were striking thirteen. " ++
@@ -201,7 +215,9 @@ test "test from cs50" {
                 "along with him. ",
         ) == .grade_10,
     );
+}
 
+test "grade 16 plus" {
     try testing.expect(
         readability_grade(
             "A large class of computational problems involve the determination of " ++
