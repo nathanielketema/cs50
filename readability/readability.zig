@@ -103,8 +103,8 @@ fn readability_grade(input: []const u8) Grade {
     // where L is the average number of letter in 100 words, (letters / words) * 100
     //       S is the average number of sentences in 100 words, (sentences / words) * 100
     assert(words != 0);
-    const L = (@as(f16, @floatFromInt(letters)) / @as(f16, @floatFromInt(words))) * 100;
-    const S = (@as(f16, @floatFromInt(sentences)) / @as(f16, @floatFromInt(words))) * 100;
+    const L = 100 * (@as(f16, @floatFromInt(letters)) / @as(f16, @floatFromInt(words)));
+    const S = 100 * (@as(f16, @floatFromInt(sentences)) / @as(f16, @floatFromInt(words)));
 
     assert(L != 0);
     assert(S != 0);
